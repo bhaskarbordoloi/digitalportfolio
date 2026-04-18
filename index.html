@@ -147,7 +147,7 @@
         /* 3D Canvas Background */
         #canvas-container { 
             position: fixed; top: 0; left: 0; width: 100vw; 
-            height: 100vh; height: 100dvh; /* Uses Dynamic Viewport Height on mobile to prevent address bar jumps */
+            height: 100vh; /* Removed 100dvh to prevent jarring address bar resize jumps */
             z-index: -1; pointer-events: none; 
         }
         
@@ -157,7 +157,7 @@
         }
         
         .panel { 
-            height: 100vh; height: 100dvh; /* Forces exact viewport height even if URL bar shrinks */
+            height: 100vh; /* Removed 100dvh for stability */
             width: 100%; 
             display: flex; 
             position: relative; padding: 0 5%;
@@ -168,11 +168,12 @@
         .content-box {
             pointer-events: auto;
             cursor: default;
-            /* Switched from transparent/blur to solid color to completely fix mobile scroll flickering */
             background: #fdfbf7; 
             border: 2px solid #1e293b;
             border-radius: 0.5rem;
-            transition: all 0.3s ease;
+            /* Changed from 'all' to explicitly only transition box-shadow. 
+               This stops CSS from fighting with GSAP transforms, entirely fixing the mobile flicker! */
+            transition: box-shadow 0.3s ease; 
         }
 
         @media (max-width: 767px) {
@@ -184,7 +185,7 @@
             .content-box { box-shadow: 8px 8px 0px rgba(30, 41, 59, 1); }
             .content-box:hover {
                 box-shadow: 12px 12px 0px rgba(30, 41, 59, 1);
-                transform: translate(-2px, -2px);
+                /* Removed transform hover effect so it doesn't fight GSAP */
             }
             #modal-content { box-shadow: 12px 12px 0px rgba(30, 41, 59, 1); }
         }
@@ -876,33 +877,20 @@
                 gsap.set(content, { autoAlpha: 0, y: 40 });
             }
 
-            // FADE IN (Skip the first panel so it is always visible on load)
-            if (i !== 0) {
-                gsap.to(content, {
-                    autoAlpha: 1, 
-                    y: 0,
-                    scrollTrigger: {
-                        trigger: panel,
-                        start: "top 65%", // Starts fading in when panel enters viewport
-                        end: "top 25%",
-                        scrub: true
-                    }
-                });
-            }
-            
-            // FADE OUT (Skip the last panel so it stays on screen at the end)
-            if (i !== panels.length - 1) {
-                gsap.to(content, {
-                    autoAlpha: 0,
-                    y: -40,
-                    scrollTrigger: {
-                        trigger: panel,
-                        start: "bottom 75%", // Starts fading out when panel leaves viewport
-                        end: "bottom 35%",
-                        scrub: true
-                    }
-                });
-            }
+            // Swapped from `scrub: true` to `toggleActions`. 
+            // This firmly LOCKS the cards in place as long as you are within the section,
+            // preventing them from disappearing if you stop scrolling slightly off-center.
+            ScrollTrigger.create({
+                trigger: panel,
+                start: "top 60%", 
+                end: "bottom 40%", 
+                onEnter: () => gsap.to(content, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out", overwrite: "auto" }),
+                onLeave: () => gsap.to(content, { autoAlpha: 0, y: -40, duration: 0.4, ease: "power2.in", overwrite: "auto" }),
+                onEnterBack: () => gsap.to(content, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out", overwrite: "auto" }),
+                onLeaveBack: () => {
+                    if (i !== 0) gsap.to(content, { autoAlpha: 0, y: 40, duration: 0.4, ease: "power2.in", overwrite: "auto" });
+                }
+            });
         });
 
         // Handle Resize with Mobile Address Bar Protection
