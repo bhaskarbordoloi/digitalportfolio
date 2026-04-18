@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bhaskar Bordoloi - Digital Portfolio</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js for 3D Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- GSAP for smooth animations and scroll tracking -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;700&display=swap');
+
+        /* Base styles */
+        body { 
+            margin: 0; padding: 0; overflow-x: hidden; 
+            background-color: #f4cfc9; color: #1e293b; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            cursor: grab; /* Indicates the background is interactive */
+        }
+
+        h1, h2, h3, .serif-font {
+            font-family: 'DM Serif Display', serif;
+        }
+        
+        /* Liquid Moving Animation Gradient Background */
+        #liquid-bg {
+            position: fixed; inset: 0; z-index: -3;
+            background-color: #d96c4e; /* Rugged Orange Base */
+            overflow: hidden;
+        }
+
+        .liquid-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px); /* Harsh enough to see shapes, soft enough to blend */
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        /* Stretched wide to create wave-like bands of warm color */
+        .blob-1 { 
+            background: #ff3366; /* Vibrant Pink/Coral */
+            width: 150vw; height: 60vh; 
+            top: -20%; left: -20%; 
+            animation: wave1 15s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .blob-2 { 
+            background: #ffb703; /* Bright Sunset Yellow */
+            width: 80vw; height: 120vh; 
+            top: -20%; right: -20%; 
+            animation: wave2 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .blob-3 { 
+            background: #9d0208; /* Deep Red/Crimson */
+            width: 140vw; height: 70vh; 
+            bottom: -30%; left: -10%; 
+            animation: wave3 22s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .blob-4 { 
+            background: #ff6d00; /* Neon Orange */
+            width: 90vw; height: 90vh; 
+            top: 20%; left: 30%; 
+            animation: wave4 25s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Distinct, obvious movements for each wave */
+        @keyframes wave1 {
+            0% { transform: translate(0, 0) rotate(-10deg) scale(1); }
+            100% { transform: translate(20vw, 25vh) rotate(15deg) scale(1.1); }
+        }
+        @keyframes wave2 {
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            100% { transform: translate(-30vw, 15vh) rotate(-25deg) scale(1.2); }
+        }
+        @keyframes wave3 {
+            0% { transform: translate(0, 0) rotate(15deg) scale(1); }
+            100% { transform: translate(15vw, -30vh) rotate(-5deg) scale(0.9); }
+        }
+        @keyframes wave4 {
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            100% { transform: translate(-25vw, -10vh) rotate(20deg) scale(1.15); }
+        }
+
+        /* Overlay noise on top of the liquid gradient */
+        #noise-overlay {
+            position: fixed; inset: 0; z-index: -2; pointer-events: none;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.4) 100%),
+                url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="3.0" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.15"/%3E%3C/svg%3E');
+        }
+
+        /* --- NEW: Twinkling Stars --- */
+        #stars-container {
+            position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden;
+        }
+        
+        .twinkling-star {
+            position: absolute;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.4);
+            opacity: 0;
+            animation: twinkle ease-in-out infinite;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0; transform: translate(0px, 0px) scale(0.5); }
+            50% { opacity: 1; transform: translate(calc(var(--mx) * 0.5), calc(var(--my) * 0.5)) scale(1.2); }
+            100% { opacity: 0; transform: translate(var(--mx), var(--my)) scale(0.5); }
+        }
+
+        /* --- NEW: Shooting Stars Brought Back --- */
+        #shooting-stars-container {
+            position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden;
+        }
+        .shooting-star {
+            position: absolute;
+            width: 120px;
+            height: 1.5px;
+            background: linear-gradient(90deg, transparent, rgba(255, 230, 200, 0.8), rgba(255, 255, 255, 1));
+            border-radius: 50%;
+            filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+            opacity: 0;
+            /* Uniform duration so they stay perfectly out of sync */
+            animation: shoot 24s linear infinite;
+        }
+        @keyframes shoot {
+            0% { transform: translateX(0) translateY(0) rotate(-20deg); opacity: 0; }
+            2% { opacity: 0.6; }
+            15% { transform: translateX(-60vw) translateY(25vh) rotate(-20deg); opacity: 0; }
+            100% { opacity: 0; }
+        }
+        /* Staggered exactly 6 seconds apart so they NEVER overlap on screen */
+        .s-star-1 { top: 10%; right: -5%; animation-delay: 0s; }
+        .s-star-2 { top: 40%; right: 10%; animation-delay: 6s; }
+        .s-star-3 { top: -5%; right: 20%; animation-delay: 12s; }
+        .s-star-4 { top: 25%; right: -10%; animation-delay: 18s; }
+
+        /* 3D Canvas Background */
+        #canvas-container { 
+            position: fixed; top: 0; left: 0; width: 100vw; 
+            height: 100vh; height: 100dvh; /* Uses Dynamic Viewport Height on mobile to prevent address bar jumps */
+            z-index: -1; pointer-events: none; 
+        }
+        
+        /* Scrollable content layers */
+        #scroll-wrapper { 
+            position: relative; z-index: 10; 
+        }
+        
+        .panel { 
+            height: 100vh; width: 100%; 
+            display: flex; 
+            position: relative; padding: 0 5%;
+            pointer-events: none;
+        }
+
+        /* Retro Card Style (Wes Anderson Vibe) */
+        .content-box {
+            pointer-events: auto;
+            cursor: default; /* Reset cursor over UI */
+            background: rgba(253, 251, 247, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #1e293b;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 767px) {
+            .content-box { box-shadow: 6px 6px 0px rgba(30, 41, 59, 1); }
+            #modal-content { box-shadow: 6px 6px 0px rgba(30, 41, 59, 1); }
+        }
+
+        @media (min-width: 768px) {
+            .content-box { box-shadow: 8px 8px 0px rgba(30, 41, 59, 1); }
+            .content-box:hover {
+                box-shadow: 12px 12px 0px rgba(30, 41, 59, 1);
+                transform: translate(-2px, -2px);
+            }
+            #modal-content { box-shadow: 12px 12px 0px rgba(30, 41, 59, 1); }
+        }
+
+        /* Modal Styles */
+        #modal-overlay {
+            position: fixed; inset: 0; z-index: 50;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease;
+            padding: 1rem;
+        }
+        #modal-overlay.active { 
+            opacity: 1; pointer-events: auto; 
+        }
+        
+        #modal-content {
+            background: #fdfbf7; border: 2px solid #1e293b; 
+            border-radius: 0.5rem;
+            width: 100%; max-width: 800px; 
+            max-height: 90vh; overflow-y: auto; /* Ensure scrollability on small screens */
+            transform: scale(0.95) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+        #modal-overlay.active #modal-content { 
+            transform: scale(1) translateY(0); 
+        }
+
+        .video-container {
+            position: relative; padding-bottom: 56.25%; /* 16:9 */
+            height: 0; overflow: hidden; max-width: 100%; background: #000;
+        }
+        .video-container iframe, .video-container video {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
+        }
+
+        /* Define variables for dynamic scrollbar colors */
+        :root {
+            --scroll-track: #d96c4e;
+            --scroll-thumb-border: #d96c4e;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--scroll-track); border-left: 2px solid #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border: 2px solid var(--scroll-thumb-border); border-radius: 6px; }
+        
+        /* Input styling overrides */
+        input[type="text"] {
+            color: #1e293b !important;
+            background-color: #ffffff !important;
+            border: 2px solid #cbd5e1 !important;
+        }
+        input[type="text"]:focus {
+            border-color: #0d9488 !important;
+            box-shadow: 4px 4px 0px rgba(13, 148, 136, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Liquid Gradient Background -->
+    <div id="liquid-bg">
+        <div class="liquid-blob blob-1"></div>
+        <div class="liquid-blob blob-2"></div>
+        <div class="liquid-blob blob-3"></div>
+        <div class="liquid-blob blob-4"></div>
+    </div>
+    <div id="noise-overlay"></div>
+    
+    <!-- Twinkling Stars Container (Populated dynamically via JS) -->
+    <div id="stars-container"></div>
+
+    <!-- Shooting Stars -->
+    <div id="shooting-stars-container">
+        <div class="shooting-star s-star-1"></div>
+        <div class="shooting-star s-star-2"></div>
+        <div class="shooting-star s-star-3"></div>
+        <div class="shooting-star s-star-4"></div>
+    </div>
+
+    <!-- NEW: Background Theme Picker (Top Left) -->
+    <div id="bg-theme-picker" class="fixed top-6 left-6 md:top-10 md:left-10 z-30 flex gap-2 pointer-events-auto">
+        <button onclick="changeBackgroundTheme('orange')" class="w-6 h-6 md:w-8 md:h-8 rounded-md border-2 border-slate-800 shadow-[2px_2px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-px active:shadow-none transition-all" style="background: linear-gradient(135deg, #d96c4e, #ffb703);" title="Rugged Orange"></button>
+        <button onclick="changeBackgroundTheme('neon')" class="w-6 h-6 md:w-8 md:h-8 rounded-md border-2 border-slate-800 shadow-[2px_2px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-px active:shadow-none transition-all" style="background: linear-gradient(135deg, #050b14, #ff007f);" title="Neon Synthwave"></button>
+        <button onclick="changeBackgroundTheme('ocean')" class="w-6 h-6 md:w-8 md:h-8 rounded-md border-2 border-slate-800 shadow-[2px_2px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-px active:shadow-none transition-all" style="background: linear-gradient(135deg, #0f172a, #38bdf8);" title="Deep Ocean"></button>
+        <button onclick="changeBackgroundTheme('dark')" class="w-6 h-6 md:w-8 md:h-8 rounded-md border-2 border-slate-800 shadow-[2px_2px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-px active:shadow-none transition-all" style="background: linear-gradient(135deg, #000000, #334155);" title="Cosmic Black"></button>
+    </div>
+
+    <!-- NEW: Retro Joystick "Bored" Trigger -->
+    <div id="prank-joystick" onclick="triggerPrank()" class="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-50 cursor-pointer group scale-[0.8] md:scale-100 origin-bottom-right" style="width: 64px; height: 80px;">
+        <div class="relative w-full h-full flex items-end justify-center">
+            <!-- Stick & Ball (Tilts right on click without skewing) -->
+            <div class="joystick-handle absolute bottom-8 origin-[50%_100%] transition-transform duration-150 ease-out group-active:rotate-[20deg] z-0">
+                <div class="w-3 h-8 bg-slate-300 border-2 border-slate-800 mx-auto -mb-1 relative z-0"></div>
+                <div class="w-7 h-7 bg-[#e76f51] rounded-full border-2 border-slate-800 shadow-[inset_-3px_-3px_0px_rgba(0,0,0,0.3)] absolute -top-5 left-1/2 -translate-x-1/2 z-10"></div>
+            </div>
+            <!-- Base (Matches Camera Color) -->
+            <div id="joystick-base" class="relative w-16 h-10 rounded-t-xl border-2 border-slate-800 shadow-[4px_4px_0px_rgba(30,41,59,1)] flex flex-col items-center justify-center transition-colors duration-500 ease-out z-10" style="background-color: #00a896;">
+                <div class="w-10 h-1 bg-slate-800/30 rounded-full mb-1"></div>
+                <span id="bored-text" class="font-bold text-[9px] text-white uppercase tracking-widest leading-none mt-1 transition-colors duration-500">Bored?</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interaction Hints -->
+    <div id="interaction-hints" class="fixed bottom-6 left-4 md:bottom-10 md:left-10 z-20 pointer-events-none flex flex-col gap-2 md:gap-3">
+        <div class="flex items-center gap-2 md:gap-3 text-slate-800 font-bold text-[10px] md:text-sm tracking-wide bg-[#fdfbf7] px-3 py-1.5 md:px-4 md:py-2.5 rounded-full border-2 border-slate-800 shadow-[2px_2px_0px_rgba(30,41,59,1)] md:shadow-[4px_4px_0px_rgba(30,41,59,1)]">
+            <svg class="w-3 h-3 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            Scroll to explore
+        </div>
+        <div class="flex items-center gap-2 md:gap-3 text-slate-800 font-bold text-[10px] md:text-sm tracking-wide bg-[#fdfbf7] px-3 py-1.5 md:px-4 md:py-2.5 rounded-full border-2 border-slate-800 shadow-[2px_2px_0px_rgba(30,41,59,1)] md:shadow-[4px_4px_0px_rgba(30,41,59,1)]">
+            <svg class="w-3 h-3 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Drag to spin camera
+        </div>
+    </div>
+
+    <!-- NEW: Camera Color Customizer (Initially hidden with opacity-0 and invisible) -->
+    <div id="color-picker" class="fixed top-24 right-4 md:right-8 z-30 flex flex-col gap-3 pointer-events-auto opacity-0 invisible">
+        <button onclick="changeCameraColor('#00a896', '#ffffff')" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-slate-800 shadow-[3px_3px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-1 active:shadow-none transition-all" style="background-color: #00a896;" title="Retro Teal"></button>
+        <button onclick="changeCameraColor('#e9c46a', '#1e293b')" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-slate-800 shadow-[3px_3px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-1 active:shadow-none transition-all" style="background-color: #e9c46a;" title="Mustard Yellow"></button>
+        <button onclick="changeCameraColor('#264653', '#ffffff')" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-slate-800 shadow-[3px_3px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-1 active:shadow-none transition-all" style="background-color: #264653;" title="Deep Navy"></button>
+        <button onclick="changeCameraColor('#fdfbf7', '#1e293b')" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-slate-800 shadow-[3px_3px_0px_rgba(30,41,59,1)] hover:scale-110 active:translate-y-1 active:shadow-none transition-all" style="background-color: #fdfbf7;" title="Bone White"></button>
+    </div>
+
+    <!-- 3D Environment -->
+    <div id="canvas-container"></div>
+
+    <!-- Scrollable UI Content -->
+    <div id="scroll-wrapper">
+        
+        <!-- Section 1: Intro -->
+        <section class="panel justify-center items-center text-center" id="panel-0">
+            <div class="content-box w-full max-w-[19rem] md:max-w-[22rem] p-5 md:p-8">
+                <p class="text-orange-600 font-bold tracking-widest uppercase text-[10px] md:text-xs mb-2 md:mb-3">Portfolio</p>
+                <h1 class="text-4xl md:text-6xl text-slate-800 mb-3 md:mb-4 tracking-tight">Bhaskar Bordoloi</h1>
+                <p class="text-xs md:text-base text-slate-600 mb-6 md:mb-8 font-medium">Scroll down to explore the different facets of my career through the lens.</p>
+                <div class="animate-bounce text-slate-800">
+                    <svg class="w-6 h-6 md:w-8 md:h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Shutter (Video Edits) -->
+        <section class="panel justify-center md:justify-start md:pl-[10%] items-end md:items-center pb-28 md:pb-0" id="panel-1">
+            <div class="content-box w-full max-w-[19rem] md:max-w-[22rem] p-5 md:p-8">
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-red-100 flex items-center justify-center mb-3 md:mb-4 border-2 border-red-400 shadow-[4px_4px_0px_rgba(248,113,113,0.5)]">
+                    <svg class="w-4 h-4 md:w-6 md:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h2 class="text-2xl md:text-4xl text-slate-800 mb-2 md:mb-3">Video Edits</h2>
+                <p class="text-[13px] md:text-base text-slate-600 mb-5 md:mb-6 leading-relaxed font-medium">Dive into my world of amazing video edits. The click of the shutter captures the moment, but the edit weaves it all together to tell a compelling story.</p>
+                <button onclick="openModal('video-edits')" class="bg-slate-800 text-white px-4 py-2.5 md:px-6 md:py-3 text-sm md:text-base rounded font-bold hover:bg-slate-700 transition duration-300 inline-flex items-center gap-2 border-2 border-slate-900 shadow-[4px_4px_0px_rgba(30,41,59,0.3)] active:translate-y-1 active:shadow-none">
+                    Watch Reel
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- Section 3: Viewfinder (Work Experience) -->
+        <section class="panel justify-center md:justify-end md:pr-[10%] items-end md:items-center pb-28 md:pb-0" id="panel-2">
+            <div class="content-box w-full max-w-[19rem] md:max-w-[22rem] p-5 md:p-8">
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3 md:mb-4 border-2 border-blue-400 shadow-[4px_4px_0px_rgba(96,165,250,0.5)]">
+                    <svg class="w-4 h-4 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </div>
+                <h2 class="text-2xl md:text-4xl text-slate-800 mb-2 md:mb-3">Work Experience</h2>
+                <p class="text-[13px] md:text-base text-slate-600 mb-5 md:mb-6 leading-relaxed font-medium">Looking through the viewfinder reveals the bigger picture. My professional journey encompasses leading teams, managing media pipelines and processes, and delivering high-quality content.</p>
+                <button onclick="openModal('resume-modal')" class="bg-slate-800 text-white px-4 py-2.5 md:px-6 md:py-3 text-sm md:text-base rounded font-bold hover:bg-slate-700 transition duration-300 inline-flex items-center gap-2 border-2 border-slate-900 shadow-[4px_4px_0px_rgba(30,41,59,0.3)] active:translate-y-1 active:shadow-none">
+                    View Resume
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- Section 4: Lens (Production Exp) -->
+        <section class="panel justify-center md:justify-start md:pl-[10%] items-end md:items-center pb-28 md:pb-0" id="panel-3">
+            <div class="content-box w-full max-w-[19rem] md:max-w-[22rem] p-5 md:p-8">
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-purple-100 flex items-center justify-center mb-3 md:mb-4 border-2 border-purple-400 shadow-[4px_4px_0px_rgba(192,132,252,0.5)]">
+                    <svg class="w-4 h-4 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </div>
+                <h2 class="text-2xl md:text-4xl text-slate-800 mb-2 md:mb-3">Production</h2>
+                <p class="text-[13px] md:text-base text-slate-600 mb-5 md:mb-6 leading-relaxed font-medium">Focusing the lens on my role in shaping content across the world. From orchestrating and handling remote shoots to handling & launching content for AI-powered products across London, Paris, Florence & Rome.</p>
+                
+                <a href="https://drive.google.com/file/d/17wjTYXz6u-Dn3ksD370dBQw2AYzMBsne/view?usp=sharing" target="_blank" class="bg-purple-600 text-white px-4 py-2.5 md:px-6 md:py-3 text-sm md:text-base rounded font-bold hover:bg-purple-700 transition duration-300 inline-flex items-center gap-2 border-2 border-slate-900 shadow-[4px_4px_0px_rgba(30,41,59,0.3)] active:translate-y-1 active:shadow-none">
+                    View Work Gallery
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                </a>
+            </div>
+        </section>
+
+        <!-- Section 5: Dial (AI Generation) -->
+        <section class="panel justify-center md:justify-end md:pr-[10%] items-end md:items-center pb-28 md:pb-0" id="panel-4">
+            <div class="content-box w-full max-w-[19rem] md:max-w-[22rem] p-5 md:p-8">
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-teal-100 flex items-center justify-center mb-3 md:mb-4 border-2 border-teal-400 shadow-[4px_4px_0px_rgba(45,212,191,0.5)]">
+                    <svg class="w-4 h-4 md:w-6 md:h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h2 class="text-2xl md:text-4xl text-slate-800 mb-2 md:mb-3">AI Generation</h2>
+                <p class="text-[13px] md:text-base text-slate-600 mb-5 md:mb-6 leading-relaxed font-medium">A flick of the dial changes everything. Exploring generative AI to push the boundaries of storytelling and visual effects.</p>
+                <button onclick="openModal('ai-experience')" class="bg-teal-600 text-white px-4 py-2.5 md:px-6 md:py-3 text-sm md:text-base rounded font-bold hover:bg-teal-700 transition duration-300 inline-flex items-center gap-2 border-2 border-slate-900 shadow-[4px_4px_0px_rgba(30,41,59,0.3)] active:translate-y-1 active:shadow-none">
+                    Explore AI Work
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- Section 6: Outro (Let's Work Together) -->
+        <section class="panel justify-center items-center text-center" id="panel-5">
+            <div class="content-box w-full max-w-[19rem] md:max-w-[22rem] p-5 md:p-8 mx-auto text-center">
+                <div class="w-8 h-8 md:w-12 md:h-12 rounded-full bg-orange-100 flex items-center justify-center mb-3 md:mb-4 mx-auto border-2 border-orange-400 shadow-[4px_4px_0px_rgba(251,146,60,0.5)]">
+                    <svg class="w-4 h-4 md:w-6 md:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </div>
+                <h2 class="text-2xl md:text-4xl text-slate-800 mb-2 md:mb-3">Let's work together?</h2>
+                <p class="text-[13px] md:text-base text-slate-600 mb-5 md:mb-6 leading-relaxed font-medium">Ready to bring your vision to life?<br>Let's connect and create something<br>truly amazing!</p>
+                <div class="bg-slate-800 text-white px-4 py-3 md:px-6 md:py-4 rounded font-bold border-2 border-slate-900 shadow-[4px_4px_0px_rgba(30,41,59,0.3)] inline-flex flex-col items-center justify-center gap-1 cursor-default select-text w-full overflow-hidden text-center">
+                    <span class="text-[11px] md:text-sm text-slate-300 font-medium">Email:</span>
+                    <span class="text-[12px] md:text-sm tracking-tight whitespace-nowrap">writetobhaskar07@gmail.com</span>
+                </div>
+            </div>
+        </section>
+        
+    </div>
+
+    <!-- Reusable Modal Overlay -->
+    <div id="modal-overlay" onclick="closeModal(event)">
+        <div id="modal-content" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center p-4 border-b-2 border-slate-800 bg-white">
+                <h3 id="modal-title" class="text-2xl text-slate-800 serif-font">Details</h3>
+                <button onclick="closeModal(true)" class="text-slate-500 hover:text-slate-900 p-1 transition bg-slate-100 rounded border border-slate-300 hover:bg-slate-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="modal-body" class="p-0">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // --- NEW: Generate Twinkling Stars ---
+        const starsContainer = document.getElementById('stars-container');
+        const numStars = 30; // Amount of stars on screen
+        
+        for (let i = 0; i < numStars; i++) {
+            const star = document.createElement('div');
+            star.classList.add('twinkling-star');
+            
+            // Randomize position across the screen
+            star.style.left = `${Math.random() * 100}vw`;
+            star.style.top = `${Math.random() * 100}vh`;
+            
+            // Randomize size (between 1px and 3px)
+            const size = Math.random() * 2 + 1;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            
+            // Randomize animation duration (between 3s and 7s) and delay
+            star.style.animationDuration = `${3 + Math.random() * 4}s`;
+            star.style.animationDelay = `${Math.random() * 5}s`;
+            
+            // Randomize slow drift distances (moves between -40px and 40px in any direction)
+            const mx = (Math.random() - 0.5) * 80;
+            const my = (Math.random() - 0.5) * 80;
+            star.style.setProperty('--mx', `${mx}px`);
+            star.style.setProperty('--my', `${my}px`);
+            
+            starsContainer.appendChild(star);
+        }
+
+        // --- 1. THREE.JS SETUP & REALISM ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // Tone mapping for bright cinematic lighting
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        container.appendChild(renderer.domElement);
+
+        // Advanced Lighting to match the warm orange environment
+        const ambientLight = new THREE.AmbientLight(0xfff5ed, 0.8); // Warm ambient
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(5, 8, 5);
+        scene.add(dirLight);
+
+        const fillLight = new THREE.DirectionalLight(0xff7b54, 0.6); // Warm orange/peach bounce light
+        fillLight.position.set(-5, -2, 5);
+        scene.add(fillLight);
+
+        // Subtle highlight
+        const rimLight = new THREE.DirectionalLight(0xffcc80, 0.6); // Soft yellow rim light
+        rimLight.position.set(0, 5, -5);
+        scene.add(rimLight);
+
+        // --- Procedural Leather Texture for Camera Body ---
+        function createLeatherBumpMap() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#888';
+            ctx.fillRect(0,0,512,512);
+            for(let i=0; i<60000; i++) {
+                const val = Math.random() > 0.5 ? 255 : 0;
+                ctx.fillStyle = `rgba(${val},${val},${val},0.08)`;
+                ctx.fillRect(Math.random()*512, Math.random()*512, 2, 2);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        // --- 2. BUILD THE 3D CAMERA PROCEDURALLY ---
+        const cameraGroup = new THREE.Group();
+
+        // Wes Anderson Inspired Materials
+        const bodyMat = new THREE.MeshStandardMaterial({ 
+            color: 0x00a896, // Vibrant Retro Teal 
+            roughness: 0.75, 
+            metalness: 0.1,
+            bumpMap: createLeatherBumpMap(),
+            bumpScale: 0.02
+        });
+        const silverMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.25, metalness: 0.8 });
+        const redMat = new THREE.MeshStandardMaterial({ color: 0xe76f51, roughness: 0.3, metalness: 0.1 }); // Coral Red
+        const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.6 }); 
+        
+        // Physical glass material for realistic lens & viewfinder
+        const glassMat = new THREE.MeshPhysicalMaterial({
+            color: 0x050505,
+            metalness: 0.9,
+            roughness: 0.05,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.1,
+            transparent: true,
+            opacity: 0.95
+        });
+
+        // Body
+        const bodyGeo = new THREE.BoxGeometry(4, 2.5, 1.5);
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        cameraGroup.add(body);
+
+        // Grip (Right side)
+        const gripGeo = new THREE.BoxGeometry(1, 2.5, 1.8);
+        const grip = new THREE.Mesh(gripGeo, bodyMat);
+        grip.position.set(1.5, 0, 0.1);
+        cameraGroup.add(grip);
+
+        // Lens Mount (Silver ring)
+        const mountGeo = new THREE.CylinderGeometry(1.3, 1.3, 0.2, 32);
+        const mount = new THREE.Mesh(mountGeo, silverMat);
+        mount.rotation.x = Math.PI / 2;
+        mount.position.set(-0.5, 0, 0.8);
+        cameraGroup.add(mount);
+
+        // Lens Barrel
+        const lensGeo = new THREE.CylinderGeometry(1.2, 1.2, 1.5, 32);
+        const lens = new THREE.Mesh(lensGeo, darkMat);
+        lens.rotation.x = Math.PI / 2;
+        lens.position.set(-0.5, 0, 1.6);
+        cameraGroup.add(lens);
+
+        // Lens Glass
+        const glassGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.1, 32);
+        const glass = new THREE.Mesh(glassGeo, glassMat);
+        glass.rotation.x = Math.PI / 2;
+        glass.position.set(-0.5, 0, 2.35);
+        cameraGroup.add(glass);
+
+        // Shutter Button (Top Right)
+        const shutterGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.15, 16);
+        const shutter = new THREE.Mesh(shutterGeo, redMat);
+        shutter.position.set(1.5, 1.3, 0.2);
+        cameraGroup.add(shutter);
+
+        // NEW: AI Dial Group (Top center-right)
+        const dialGroup = new THREE.Group();
+        // Silver Base
+        const dialBaseGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 24);
+        const dialBase = new THREE.Mesh(dialBaseGeo, silverMat);
+        dialGroup.add(dialBase);
+        // Dark Indicator line so rotation is visible
+        const indicatorGeo = new THREE.BoxGeometry(0.06, 0.22, 0.35);
+        const indicator = new THREE.Mesh(indicatorGeo, darkMat);
+        indicator.position.set(0, 0, 0.15); // Offset to the edge
+        dialGroup.add(indicator);
+        
+        dialGroup.position.set(0.5, 1.35, 0);
+        cameraGroup.add(dialGroup);
+
+        // Viewfinder
+        const vfGeo = new THREE.BoxGeometry(1, 0.8, 1);
+        const vf = new THREE.Mesh(vfGeo, darkMat);
+        vf.position.set(-0.5, 1.4, -0.4);
+        cameraGroup.add(vf);
+        
+        // NEW: Viewfinder Front Cutout (Glass logic)
+        const vfFrontGeo = new THREE.PlaneGeometry(0.5, 0.35);
+        const vfFront = new THREE.Mesh(vfFrontGeo, glassMat);
+        vfFront.position.set(-0.5, 1.4, 0.11); // Placed slightly in front of the box
+        cameraGroup.add(vfFront);
+
+        // Viewfinder Eyecup (Back)
+        const eyecupGeo = new THREE.BoxGeometry(0.8, 0.6, 0.2);
+        const eyecup = new THREE.Mesh(eyecupGeo, darkMat);
+        eyecup.position.set(-0.5, 1.4, -0.9);
+        cameraGroup.add(eyecup);
+
+        // Screen (Back)
+        const screenGeo = new THREE.PlaneGeometry(2.6, 1.8);
+        const screenMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.8 });
+        const screen = new THREE.Mesh(screenGeo, screenMat);
+        screen.rotation.y = Math.PI; 
+        screen.position.set(-0.2, -0.1, -0.76);
+        cameraGroup.add(screen);
+
+        // --- NEW: Wrap camera to isolate mobile scaling ---
+        const outerCameraGroup = new THREE.Group();
+        outerCameraGroup.add(cameraGroup);
+        scene.add(outerCameraGroup);
+
+        // --- 3. ANIMATION STATE & LOGIC ---
+        const camState = {
+            x: 0, y: 0, z: 12,      
+            lookX: 0, lookY: 0, lookZ: 0 
+        };
+        
+        camera.position.set(camState.x, camState.y, camState.z);
+        const lookTarget = new THREE.Vector3(camState.lookX, camState.lookY, camState.lookZ);
+
+        let isMobile = window.innerWidth < 768;
+
+        // Apply global scale down for mobile devices to prevent the camera from being too massive
+        outerCameraGroup.scale.setScalar(isMobile ? 0.6 : 1);
+
+        // Dynamic FOV for initial load
+        camera.fov = isMobile ? 65 : 45;
+        camera.updateProjectionMatrix();
+
+        // --- NEW: INTERACTIVE DRAG LOGIC ---
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let targetRotation = { x: 0, y: 0 };
+        let currentRotation = { x: 0, y: 0 };
+
+        // Handle Mouse
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.content-box') || e.target.closest('#modal-overlay')) return;
+            isDragging = true;
+            document.body.style.cursor = 'grabbing';
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaMove = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+                
+                targetRotation.y += deltaMove.x * 0.008;
+                targetRotation.x += deltaMove.y * 0.008;
+                
+                // Clamp X rotation to prevent flipping upside down
+                targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, targetRotation.x));
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        window.addEventListener('mouseup', () => { 
+            isDragging = false; 
+            document.body.style.cursor = 'grab';
+        });
+
+        // Handle Touch (Mobile)
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.content-box') || e.target.closest('#modal-overlay')) return;
+            isDragging = true;
+            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                const deltaMove = {
+                    x: e.touches[0].clientX - previousMousePosition.x,
+                    y: e.touches[0].clientY - previousMousePosition.y
+                };
+                
+                targetRotation.y += deltaMove.x * 0.008;
+                targetRotation.x += deltaMove.y * 0.008;
+                targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, targetRotation.x));
+                
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        // Prevent accidental text selection while dragging the camera
+        window.addEventListener('selectstart', (e) => {
+            if (isDragging) e.preventDefault();
+        });
+        // -----------------------------------
+
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Idle floating animation
+            time += 0.01;
+            cameraGroup.position.y = Math.sin(time) * 0.15;
+            
+            // --- NEW: Apply Interaction Rotation ---
+            if (!isDragging) {
+                // Auto-center slowly when not dragging so scroll zooms stay perfectly aligned to the camera features
+                targetRotation.x += (0 - targetRotation.x) * 0.03;
+                targetRotation.y += (0 - targetRotation.y) * 0.03;
+            }
+
+            // Smoothly interpolate current rotation towards the target rotation
+            currentRotation.x += (targetRotation.x - currentRotation.x) * 0.1;
+            currentRotation.y += (targetRotation.y - currentRotation.y) * 0.1;
+
+            cameraGroup.rotation.x = currentRotation.x;
+            cameraGroup.rotation.y = currentRotation.y + (Math.sin(time * 0.5) * 0.08); // Add back the idle wobble
+            // ---------------------------------------
+
+            // Update camera from GSAP state
+            // If on mobile, we virtually shift the camera down so the 3D model appears higher, 
+            // ensuring it isn't blocked by the bottom-aligned cards.
+            const mobileYOffset = isMobile ? 0.6 : 0; // Reduced offset since the model is now appropriately scaled
+
+            camera.position.set(camState.x, camState.y - mobileYOffset, camState.z);
+            lookTarget.set(camState.lookX, camState.lookY - mobileYOffset, camState.lookZ);
+            camera.lookAt(lookTarget);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- 4. SMOOTH GSAP SCROLL ANIMATIONS ---
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#scroll-wrapper",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 1.5 // Reverted to 1.5 for buttery smoothness
+            }
+        });
+
+        const easeType = "power2.inOut"; // Reverted to smoother easing
+
+        // Panel 1: Intro -> Panel 2: Shutter Zoom (Top right of camera)
+        tl.to(camState, {
+            x: 2.5, y: 3.5, z: 2, 
+            lookX: 1.5, lookY: 1.3, lookZ: 0.2,
+            ease: easeType
+        }, 0);
+
+        // Panel 2 -> Panel 3: Viewfinder Zoom (Back/top of camera)
+        tl.to(camState, {
+            x: -2, y: 3, z: -4.5,
+            lookX: -0.5, lookY: 1.4, lookZ: -0.9,
+            ease: easeType
+        }, 1);
+
+        // Panel 3 -> Panel 4: Side View of Lens (Production)
+        tl.to(camState, {
+            x: -5, y: 0, z: 1.6, // Move far to the left side
+            lookX: -0.5, lookY: 0, lookZ: 1.6, // Look at the side of the lens
+            ease: easeType
+        }, 2);
+
+        // Panel 4 -> Panel 5: AI Mode / Dial focus
+        tl.to(camState, {
+            x: 0.5, y: 3.5, z: 2.5, // Hover above the dial
+            lookX: 0.5, lookY: 1.35, lookZ: 0, // Look at dial
+            ease: easeType
+        }, 3);
+
+        // Simultaneously flick the dial as we arrive at Panel 5
+        tl.to(dialGroup.rotation, {
+            y: Math.PI * 1.25, // Rotate the dial visibly
+            ease: "back.out(1.5)" // Snappy mechanical click
+        }, 3.2);
+
+        // Panel 5 -> Panel 6: Center card, make camera disappear (scale to 0)
+        tl.to(camState, {
+            x: 0, y: 0, z: 12,      
+            lookX: 0, lookY: 0, lookZ: 0,
+            ease: easeType
+        }, 4);
+
+        // Scale camera down to 0 so it smoothly vanishes into the center, 
+        // explicitly setting start scale so it scrubs backward reliably.
+        tl.fromTo(cameraGroup.scale, 
+            { x: 1, y: 1, z: 1 },
+            { x: 0, y: 0, z: 0, ease: "power2.inOut" }, 
+            4
+        );
+
+        // Reset the dial
+        tl.to(dialGroup.rotation, {
+            y: 0,
+            ease: "back.out(1.5)"
+        }, 4);
+
+        // Fade out interaction hints as user starts scrolling
+        gsap.to('#interaction-hints', {
+            autoAlpha: 0,
+            scrollTrigger: {
+                trigger: "#scroll-wrapper",
+                start: "top top",
+                end: "+=150", // Fades out very quickly within the first 150px of scroll
+                scrub: true
+            }
+        });
+
+        // --- NEW: Background Theme Picker Dimming Logic ---
+        const bgPicker = document.getElementById('bg-theme-picker');
+        let isPickerHovered = false;
+
+        bgPicker.addEventListener('mouseenter', () => {
+            isPickerHovered = true;
+            gsap.to(bgPicker, { opacity: 1, duration: 0.3, overwrite: "auto" });
+        });
+        
+        bgPicker.addEventListener('mouseleave', () => {
+            isPickerHovered = false;
+            if (window.scrollY > 100) {
+                gsap.to(bgPicker, { opacity: 0.3, duration: 0.3, overwrite: "auto" });
+            }
+        });
+
+        // Dim the picker when scrolling down so it isn't distracting
+        window.addEventListener('scroll', () => {
+            if (isPickerHovered) return;
+            if (window.scrollY > 100) {
+                gsap.to(bgPicker, { opacity: 0.3, duration: 0.3, overwrite: "auto" });
+            } else {
+                gsap.to(bgPicker, { opacity: 1, duration: 0.3, overwrite: "auto" });
+            }
+        });
+
+
+        // --- NEW: Color Picker Visibility Logic ---
+        gsap.set('#color-picker', { autoAlpha: 0 }); // Ensure it starts completely hidden
+        
+        ScrollTrigger.create({
+            trigger: "#panel-1",        // Triggers when panel 1 (Video Edits) comes into view
+            start: "top 60%",           
+            endTrigger: "#panel-5",     // Ends when panel 5 (Outro) comes into view
+            end: "top 60%",             
+            onEnter: () => gsap.to("#color-picker", { autoAlpha: 1, duration: 0.4 }),
+            onLeave: () => gsap.to("#color-picker", { autoAlpha: 0, duration: 0.4 }),
+            onEnterBack: () => gsap.to("#color-picker", { autoAlpha: 1, duration: 0.4 }),
+            onLeaveBack: () => gsap.to("#color-picker", { autoAlpha: 0, duration: 0.4 }),
+        });
+
+
+        // Animate UI elements opacity mapping to scroll panels
+        const panels = gsap.utils.toArray('.panel');
+        panels.forEach((panel, i) => {
+            const content = panel.querySelector('.content-box');
+            
+            // Set initial states: First panel is visible, others are hidden.
+            // Using autoAlpha instead of opacity ensures invisible cards don't block mouse interactions.
+            if (i === 0) {
+                gsap.set(content, { autoAlpha: 1, y: 0 });
+            } else {
+                gsap.set(content, { autoAlpha: 0, y: 40 });
+            }
+
+            // FADE IN (Skip the first panel so it is always visible on load)
+            if (i !== 0) {
+                gsap.to(content, {
+                    autoAlpha: 1, 
+                    y: 0,
+                    scrollTrigger: {
+                        trigger: panel,
+                        start: "top 65%", // Starts fading in when panel enters viewport
+                        end: "top 25%",
+                        scrub: true
+                    }
+                });
+            }
+            
+            // FADE OUT (Skip the last panel so it stays on screen at the end)
+            if (i !== panels.length - 1) {
+                gsap.to(content, {
+                    autoAlpha: 0,
+                    y: -40,
+                    scrollTrigger: {
+                        trigger: panel,
+                        start: "bottom 75%", // Starts fading out when panel leaves viewport
+                        end: "bottom 35%",
+                        scrub: true
+                    }
+                });
+            }
+        });
+
+        // Handle Resize with Mobile Address Bar Protection
+        let lastWidth = window.innerWidth;
+        window.addEventListener('resize', () => {
+            // Mobile browsers hide/show the address bar on scroll, triggering a height-only resize.
+            // We ignore height-only resizes on mobile to prevent the 3D canvas from jarringly snapping.
+            if (isMobile && window.innerWidth === lastWidth) return;
+            lastWidth = window.innerWidth;
+
+            isMobile = window.innerWidth < 768;
+            outerCameraGroup.scale.setScalar(isMobile ? 0.6 : 1);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            // Adjust FOV based on screen width to prevent clipping
+            camera.fov = isMobile ? 65 : 45;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            ScrollTrigger.refresh(); // Refresh scroll triggers strictly when width actually changes
+        });
+
+        // --- 5. MODAL LOGIC & CONTENT ---
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+
+        const modalContentMap = {
+            'resume-modal': {
+                title: 'Curriculum Vitae',
+                html: `
+                    <div class="p-6 md:p-10 bg-[#fdfbf7] text-slate-800 font-sans">
+                        <header class="text-center mb-10 border-b-2 border-slate-200 pb-8">
+                            <h1 class="text-4xl md:text-5xl serif-font mb-3 tracking-tight">Bhaskar Bordoloi</h1>
+                            <p class="text-sm md:text-base text-slate-600 font-medium">
+                                +91-9678922889 &nbsp;|&nbsp; writetobhaskar07@gmail.com &nbsp;|&nbsp; India
+                            </p>
+                        </header>
+
+                        <section class="mb-10">
+                            <h2 class="text-2xl serif-font mb-6 text-slate-800 border-b-2 border-slate-800 inline-block pr-6 pb-1">Professional Experience</h2>
+                            
+                            <!-- Headout: Assistant Producer, Dex -->
+                            <div class="mb-8">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-baseline mb-2">
+                                    <h3 class="text-xl font-bold text-slate-900">Headout <span class="text-slate-500 font-medium text-lg">| Assistant Producer, Dex</span></h3>
+                                    <span class="text-xs md:text-sm text-slate-700 font-bold bg-slate-200 px-3 py-1 rounded-full mt-2 md:mt-0 border border-slate-300 shadow-[2px_2px_0px_rgba(100,116,139,0.2)] inline-block w-max">Dec 2025 - Present | Bengaluru, IN</span>
+                                </div>
+                                <p class="text-xs md:text-sm text-slate-500 italic mb-4 border-l-2 border-slate-300 pl-3">Dex is Headout’s immersive and interactive audio tour platform, creating next-generation location-based experiences through storytelling, navigation assistance, and rich media.</p>
+                                <ul class="list-disc list-outside ml-5 text-sm space-y-2.5 text-slate-700 leading-relaxed">
+                                    <li>Built Dex’s foundational media systems from the ground up, establishing scalable 360° camera workflows, selecting production hardware, defining shoot settings, and creating SOPs for long-term global content operations.</li>
+                                    <li>Designed and implemented a cost-efficient AI-powered media pipeline for image extraction, enhancement, and cleanup; recruited and mentored 3 interns, set quality benchmarks, and expanded team execution capacity to accelerate the first wave of Dex launches.</li>
+                                    <li>Travelled to Paris, Florence, and Rome to personally playtest, unblock, and launch 11 Dex experiences, resolving route, media, and production issues on-ground.</li>
+                                    <li>Conducted field production and research across multiple Rome neighbourhood experiences, personally capturing footage, validating routes, and driving end-to-end readiness for upcoming launches.</li>
+                                    <li>Produced a professional cinematic promo for Dex through an on-ground shoot at the British Museum in London, delivering a polished high-impact demo asset within 48 hours.</li>
+                                    <li>Operated as a one-person end-to-end production unit across international markets, independently navigating cities, curating routes, producing media, and refining content for AI-backed immersive travel products across London, Paris, Rome, and Florence.</li>
+                                </ul>
+                            </div>
+
+                            <!-- Headout: Manager - Video Marketing -->
+                            <div class="mb-8">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-baseline mb-2">
+                                    <h3 class="text-xl font-bold text-slate-900">Headout <span class="text-slate-500 font-medium text-lg">| Manager - Video Marketing</span></h3>
+                                    <span class="text-xs md:text-sm text-slate-700 font-bold bg-slate-200 px-3 py-1 rounded-full mt-2 md:mt-0 border border-slate-300 shadow-[2px_2px_0px_rgba(100,116,139,0.2)] inline-block w-max">Oct 2025 - Nov 2025 | Bengaluru, IN</span>
+                                </div>
+                                <p class="text-xs md:text-sm text-slate-500 italic mb-4 border-l-2 border-slate-300 pl-3">Headout is home to 20,000+ experiences in 300+ cities, with a growing customer base of 10 million+ worldwide.</p>
+                                <ul class="list-disc list-outside ml-5 text-sm space-y-2.5 text-slate-700 leading-relaxed">
+                                    <li>Managed and mentored a team of 5–6 video editors, ensuring consistently high creative standards, efficient workflows, and strong quality control across all deliverables.</li>
+                                    <li>Led end-to-end creative oversight for video content, reviewing edits, refining outputs, and maintaining premium brand-quality storytelling across campaigns, while introducing AI-driven innovation into the workflow by implementing best-in-class tools for image, video, and audio generation.</li>
+                                    <li>Remotely directed and oversaw production of an original branded shoot in Florence for an Instagram content series, managing creative execution from pre-production through final delivery.</li>
+                                    <li>Conceptualized storylines, visual treatment, and edit direction for the Florence series, ensuring cinematic production quality and emotionally engaging narratives.</li>
+                                </ul>
+                            </div>
+
+                            <!-- Headout: Creative Lead - Video Marketing -->
+                            <div class="mb-8">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-baseline mb-2">
+                                    <h3 class="text-xl font-bold text-slate-900">Headout <span class="text-slate-500 font-medium text-lg">| Creative Lead - Video Marketing</span></h3>
+                                    <span class="text-xs md:text-sm text-slate-700 font-bold bg-slate-200 px-3 py-1 rounded-full mt-2 md:mt-0 border border-slate-300 shadow-[2px_2px_0px_rgba(100,116,139,0.2)] inline-block w-max">Oct 2024 - Sep 2025 | Bengaluru, IN</span>
+                                </div>
+                                <p class="text-xs md:text-sm text-slate-500 italic mb-4 border-l-2 border-slate-300 pl-3">Headout is home to 20,000+ experiences in 300+ cities, with a growing customer base of 10 million+ worldwide.</p>
+                                <ul class="list-disc list-outside ml-5 text-sm space-y-2.5 text-slate-700 leading-relaxed">
+                                    <li>Designed and executed end-to-end hiring flow, including live and offline assignments, task design, and evaluation material. Reviewed 200+ applications, conducted 55+ interviews, and closed key hires within the quarter (Apr–Jun).</li>
+                                    <li>Elevated ad quality through actionable creative feedback and concept-driven execution. Spearheaded standout campaigns like Westend and TOL, known for their refined visuals, storytelling, and sleek animation.</li>
+                                    <li>Spearheaded the first official Dex by Headout promo and accompanying video suite, driving concept-to-delivery execution under intense timelines. Collaborated directly with the CEO during a 10–12 day on-site production sprint in Bangalore to bring the vision to life.</li>
+                                    <li>Pioneered AI integration in video production, merging AI visuals with motion design to define a new creative style. Initiated and currently lead Headout’s Gen AI Task Force.</li>
+                                    <li>Maintaining strong QC standards through regular feedback loops with editors and writers. Balancing multiple timelines, stakeholder expectations, and creative vision to ensure cohesive final outputs. Fostering proactive communication between editing and writing pipelines for unified storytelling.</li>
+                                    <li>Manage 6 direct reports, balancing productivity, morale, and cross-team collaboration. Maintaining daily touch points (huddles, syncs, feedbacks) and built strong team relationships. Successfully juggling people management, personal deliverables, and stakeholder communication.</li>
+                                </ul>
+                            </div>
+
+                            <!-- Headout: Senior Video Editor -->
+                            <div class="mb-8">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-baseline mb-2">
+                                    <h3 class="text-xl font-bold text-slate-900">Headout <span class="text-slate-500 font-medium text-lg">| Senior Video Editor</span></h3>
+                                    <span class="text-xs md:text-sm text-slate-700 font-bold bg-slate-200 px-3 py-1 rounded-full mt-2 md:mt-0 border border-slate-300 shadow-[2px_2px_0px_rgba(100,116,139,0.2)] inline-block w-max">Jan 2023 - Sep 2024 | Bengaluru, IN</span>
+                                </div>
+                                <p class="text-xs md:text-sm text-slate-500 italic mb-4 border-l-2 border-slate-300 pl-3">Headout is home to 20,000+ experiences in 300+ cities, with a growing customer base of 10 million+ worldwide.</p>
+                                <ul class="list-disc list-outside ml-5 text-sm space-y-2.5 text-slate-700 leading-relaxed">
+                                    <li>Played a pivotal role in amplifying Headout's booking rate by <strong class="text-slate-900">18% within 4 months</strong> by spearheading the editing & optimisation of 100+ banner videos for the media revamp project and establishing an operational framework for video editing and QA.</li>
+                                    <li>Grew Headout's YouTube to <strong class="text-slate-900">20M+ organic views</strong> from search-driven videos generating GBV & increasing brand discovery.</li>
+                                    <li>Established video as an acquisition channel: Generating over <strong class="text-slate-900">$10,000 in monthly revenue</strong> by leading the editing for videos and strategically positioning them to increase conversions on our website and micro-brands.</li>
+                                    <li>Leading a team of 5 editors to ensure standardization across video quality, creative storytelling and viewer retention for Headout's website and YouTube, and scaling search driven content for brand discovery.</li>
+                                    <li>Created 100+ infographics within 6 months to yield reusable assets, achieve reduced editing time and forge consistent video quality by building a video design vertical for the team.</li>
+                                    <li>Managed global productions remotely for shoots in major cities like Rome, Dubai, London, Madrid, Barcelona and Paris, including end-to-end production for a collaboration with Disneyland Paris.</li>
+                                    <li>Promoted to the role of Senior Video Editor in 9 months with a 30% hike which was highest in the team.</li>
+                                </ul>
+                            </div>
+
+                            <!-- Headout: Video Editor -->
+                            <div class="mb-6">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-baseline mb-3">
+                                    <h3 class="text-xl font-bold text-slate-900">Headout <span class="text-slate-500 font-medium text-lg">| Video Editor</span></h3>
+                                    <span class="text-xs md:text-sm text-slate-700 font-bold bg-slate-200 px-3 py-1 rounded-full mt-2 md:mt-0 border border-slate-300 shadow-[2px_2px_0px_rgba(100,116,139,0.2)] inline-block w-max">Apr 2022 - Dec 2022 | Bengaluru, IN</span>
+                                </div>
+                                <p class="text-xs md:text-sm text-slate-500 italic mb-4 border-l-2 border-slate-300 pl-3">Headout is home to 20,000+ experiences in 300+ cities, with a growing customer base of 10 million+ worldwide.</p>
+                                <ul class="list-disc list-outside ml-5 text-sm space-y-2.5 text-slate-700 leading-relaxed">
+                                    <li>Made a triple jump—location, industry, and function—by pursuing video editing. Edited 55 top-tier videos within 9 months including one standout video: the 'London Travel Guide,' which has the channel's highest viewership at <strong class="text-slate-900">400,000+ views</strong>.</li>
+                                    <li>Founded a video SEO vertical and led the titanic challenge of improving video discovery for Headout's YouTube. Generated 1.1 million organic views, grew subscribers base to 4169 with an overall <strong class="text-slate-900">growth rate of 843%</strong> within 1 year.</li>
+                                    <li>Crafted multiple case studies on the intricacies of YouTube algorithm and arranged training sessions for the team.</li>
+                                    <li>Secured 1st rank in two consecutive quarters for overall performance in the video marketing team.</li>
+                                    <li>Collaborated cross-functionally with design, social media & content marketing teams, driving impactful projects.</li>
+                                </ul>
+                            </div>
+                        </section>
+
+                        <section>
+                            <h2 class="text-2xl serif-font mb-6 text-slate-800 border-b-2 border-slate-800 inline-block pr-6 pb-1">Education</h2>
+                            
+                            <!-- MBA -->
+                            <div class="mb-8">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-baseline mb-1">
+                                    <h3 class="text-lg font-bold text-slate-900">Assam Institute of Management</h3>
+                                    <span class="text-xs md:text-sm text-slate-700 font-bold bg-slate-200 px-3 py-1 rounded-full mt-2 md:mt-0 border border-slate-300 shadow-[2px_2px_0px_rgba(100,116,139,0.2)] inline-block w-max">Jul 2018 - Aug 2020</span>
+                                </div>
+                                <p class="text-sm font-semibold mb-3 text-slate-800">Master of Business Administration | GPA: 9.00/10, First Class</p>
+                                <ul class="list-disc list-outside ml-5 text-sm space-y-2 text-slate-700 leading-relaxed">
+                                    <li>Completed MBA with a dual specialization in - Marketing & Finance.</li>
+                                    <li>Displayed academic excellence by being back-to-back topper in 3rd and 4th Trimesters with CGPAs - 9.50 & 9.29 respectively.</li>
+                                    <li>Secured prestigious summer internship at DSP Mutual Fund, one of 2 selected from the entire batch.</li>
+                                    <li>Youngest graduate in a batch of 60 students, also served as Cultural Secretary organizing events inside and outside campus.</li>
+                                </ul>
+                            </div>
+
+                            <!-- BA -->
+                            <div class="mb-2">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-baseline mb-1">
+                                    <h3 class="text-lg font-bold text-slate-900">Tezpur University</h3>
+                                    <span class="text-xs md:text-sm text-slate-700 font-bold bg-slate-200 px-3 py-1 rounded-full mt-2 md:mt-0 border border-slate-300 shadow-[2px_2px_0px_rgba(100,116,139,0.2)] inline-block w-max">Jul 2015 - Jun 2018</span>
+                                </div>
+                                <p class="text-sm font-semibold mb-3 text-slate-800">Bachelor of Arts, English | GPA: 6.44/10, First Class</p>
+                                <ul class="list-disc list-outside ml-5 text-sm space-y-2 text-slate-700 leading-relaxed">
+                                    <li>Enrolled in a distinguished integrated MA program, which assured definite progression to Master of Arts.</li>
+                                    <li>Final year project 'Portrayal of Fiction From The Perspective Of The Antagonist' based on Rick Riordon's Percy Jackson and the Olympian Series.</li>
+                                    <li>Founding committee member instrumental in organizing Tezpur University's inaugural art and literary festival, Arnaswat.</li>
+                                </ul>
+                            </div>
+                        </section>
+                    </div>
+                `
+            },
+            'video-edits': {
+                title: 'Video Edits Portfolio',
+                html: `
+                    <div class="p-6 bg-white">
+                        <div class="video-container border-2 border-slate-800 rounded-md overflow-hidden bg-slate-900 mb-6 shadow-[6px_6px_0px_rgba(30,41,59,1)]">
+                            <iframe width="560" height="315" src="https://www.youtube.com/embed/WGnaOLEVX0M?si=MQCDbelNDQ9O6jLW" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        </div>
+                        <div class="text-center">
+                            <a href="https://linktr.ee/bhaskarbordoloi" target="_blank" class="inline-flex items-center gap-2 bg-slate-800 text-white px-8 py-4 rounded-md font-bold hover:bg-slate-700 transition duration-300 border-2 border-slate-900 shadow-[6px_6px_0px_rgba(30,41,59,1)] active:translate-y-1 active:shadow-none">
+                                Explore More on Linktree ↗
+                            </a>
+                        </div>
+                    </div>
+                `
+            },
+            'ai-experience': {
+                title: 'AI Generation & Workflow',
+                html: `
+                    <div class="p-6 bg-white">
+                        <div class="video-container border-2 border-slate-800 rounded-md overflow-hidden bg-slate-900 mb-6 shadow-[6px_6px_0px_rgba(30,41,59,1)]">
+                            <iframe width="560" height="315" src="https://www.youtube.com/embed/TU55cgdt9OA?si=9UMukt4NE42Wo3o6" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        </div>
+                        <div class="text-center">
+                            <a href="https://linktr.ee/bhaskarbordoloi" target="_blank" class="inline-flex items-center gap-2 bg-slate-800 text-white px-8 py-4 rounded-md font-bold hover:bg-slate-700 transition duration-300 border-2 border-slate-900 shadow-[6px_6px_0px_rgba(30,41,59,1)] active:translate-y-1 active:shadow-none">
+                                Explore More on Linktree ↗
+                            </a>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        function openModal(id) {
+            const data = modalContentMap[id];
+            if(data) {
+                modalTitle.textContent = data.title;
+                modalBody.innerHTML = data.html;
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; 
+            }
+        }
+
+        function closeModal(event) {
+            if (event === true || event.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                
+                setTimeout(() => {
+                    if(!modalOverlay.classList.contains('active')) {
+                        modalBody.innerHTML = ''; 
+                    }
+                }, 400);
+            }
+        }
+
+        // --- NEW: Camera Color Transition Logic ---
+        function changeCameraColor(hexString, textColor = '#ffffff') {
+            const targetColor = new THREE.Color(hexString);
+            
+            // Smoothly animate the RGB values of the camera's body material
+            gsap.to(bodyMat.color, {
+                r: targetColor.r,
+                g: targetColor.g,
+                b: targetColor.b,
+                duration: 0.5,
+                ease: "power2.out"
+            });
+
+            // Sync the joystick base color with the camera body
+            gsap.to('#joystick-base', {
+                backgroundColor: hexString,
+                duration: 0.5,
+                ease: "power2.out"
+            });
+            
+            // Sync the "Bored?" text color for visibility
+            gsap.to('#bored-text', {
+                color: textColor,
+                duration: 0.5,
+                ease: "power2.out"
+            });
+        }
+
+        // --- NEW: Background Theme Transition Logic ---
+        const bgThemes = {
+            orange: {
+                bg: '#d96c4e', b1: '#ff3366', b2: '#ffb703', b3: '#9d0208', b4: '#ff6d00',
+                fillLight: 0xff7b54, rimLight: 0xffcc80
+            },
+            dark: {
+                bg: '#000000', b1: '#0f172a', b2: '#1e1b4b', b3: '#334155', b4: '#020617',
+                fillLight: 0x0f172a, rimLight: 0x94a3b8 // Sharp metallic silver rim light
+            },
+            neon: {
+                bg: '#050b14', b1: '#ff007f', b2: '#00d4ff', b3: '#7000ff', b4: '#ff003c',
+                fillLight: 0xff007f, rimLight: 0x00d4ff
+            },
+            ocean: {
+                bg: '#0f172a', b1: '#38bdf8', b2: '#3b82f6', b3: '#1d4ed8', b4: '#818cf8',
+                fillLight: 0x38bdf8, rimLight: 0x818cf8
+            }
+        };
+
+        function changeBackgroundTheme(themeName) {
+            const theme = bgThemes[themeName];
+            if (!theme) return;
+
+            // Animate HTML background and liquid blobs
+            gsap.to('#liquid-bg', { backgroundColor: theme.bg, duration: 1.5, ease: 'power2.inOut' });
+            gsap.to('.blob-1', { backgroundColor: theme.b1, duration: 1.5, ease: 'power2.inOut' });
+            gsap.to('.blob-2', { backgroundColor: theme.b2, duration: 1.5, ease: 'power2.inOut' });
+            gsap.to('.blob-3', { backgroundColor: theme.b3, duration: 1.5, ease: 'power2.inOut' });
+            gsap.to('.blob-4', { backgroundColor: theme.b4, duration: 1.5, ease: 'power2.inOut' });
+
+            // Animate Three.js lights to match the new environment
+            gsap.to(fillLight.color, { 
+                r: new THREE.Color(theme.fillLight).r, 
+                g: new THREE.Color(theme.fillLight).g, 
+                b: new THREE.Color(theme.fillLight).b, 
+                duration: 1.5 
+            });
+            gsap.to(rimLight.color, { 
+                r: new THREE.Color(theme.rimLight).r, 
+                g: new THREE.Color(theme.rimLight).g, 
+                b: new THREE.Color(theme.rimLight).b, 
+                duration: 1.5 
+            });
+
+            // Update custom scrollbar variables
+            document.documentElement.style.setProperty('--scroll-track', theme.bg);
+            document.documentElement.style.setProperty('--scroll-thumb-border', theme.bg);
+        }
+
+        // --- NEW: Bored Coin Prank Logic ---
+        let isPranking = false;
+        let lastPrankIndex = -1; // Keep track of the last prank to prevent duplicates
+        const prankTargets = ['#scroll-wrapper', '#canvas-container'];
+
+        function triggerPrank() {
+            if (isPranking) return;
+            isPranking = true;
+
+            // Wiggle the joystick base to acknowledge the click
+            gsap.fromTo('#prank-joystick', 
+                { rotation: -5 }, 
+                { rotation: 5, duration: 0.05, yoyo: true, repeat: 5, ease: "sine.inOut" }
+            );
+
+            const actions = [
+                function blowAway() {
+                    gsap.to('.panel', { x: "random(-1500, 1500)", y: "random(-800, 800)", rotation: "random(-180, 180)", opacity: 0, duration: 1.5, ease: "power2.out" });
+                    gsap.to('#canvas-container', { scale: 0.1, rotation: 720, opacity: 0, duration: 1.5, ease: "power2.out" });
+                },
+                function vhsGlitch() {
+                    // Replaced Inverted Dimension with a rapid VHS/Matrix tear effect
+                    const tl = gsap.timeline();
+                    for(let i=0; i<10; i++) {
+                        tl.to(prankTargets, {
+                            x: "random(-20, 20)",
+                            skewX: "random(-10, 10)",
+                            filter: `hue-rotate(${(i%2 === 0 ? 90 : -90)}deg) contrast(150%)`,
+                            duration: 0.1,
+                            ease: "power1.inOut"
+                        });
+                    }
+                },
+                function earthquake() {
+                    gsap.to(prankTargets, { x: "random(-40, 40)", y: "random(-40, 40)", rotation: "random(-4, 4)", yoyo: true, repeat: 30, duration: 0.1 });
+                },
+                function blackHole() {
+                    gsap.to(prankTargets, { scale: 0, rotation: 1080, opacity: 0, duration: 2, ease: "power3.in" });
+                },
+                function drunkMode() {
+                    gsap.to(prankTargets, { skewX: 30, skewY: -30, filter: "blur(15px) contrast(1.5)", scale: 1.1, duration: 1.5, ease: "sine.inOut" });
+                }
+            ];
+
+            // Pick a random chaotic action, ensuring it's not the same one as last time
+            let randomIdx;
+            do {
+                randomIdx = Math.floor(Math.random() * actions.length);
+            } while (randomIdx === lastPrankIndex);
+            
+            lastPrankIndex = randomIdx; // Save the new index
+            
+            // Trigger the randomly selected action
+            actions[randomIdx]();
+
+            // Revert everything back to normal after 3 seconds
+            setTimeout(() => {
+                gsap.to([...prankTargets, '.panel'], {
+                    x: 0, y: 0, rotation: 0, rotationX: 0, rotationY: 0, scale: 1, skewX: 0, skewY: 0, opacity: 1, filter: "none", duration: 1.2, ease: "back.out(1.2)",
+                    onComplete: () => {
+                        isPranking = false;
+                        // Clear inline transform/filter properties to prevent ANY lingering sub-pixel shape drifting or artifacts
+                        gsap.set([...prankTargets, '.panel'], { clearProps: "transform,filter" });
+                    }
+                });
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
