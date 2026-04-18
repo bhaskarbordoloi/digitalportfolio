@@ -157,7 +157,8 @@
         }
         
         .panel { 
-            height: 100vh; width: 100%; 
+            height: 100vh; height: 100dvh; /* Forces exact viewport height even if URL bar shrinks */
+            width: 100%; 
             display: flex; 
             position: relative; padding: 0 5%;
             pointer-events: none;
@@ -166,9 +167,9 @@
         /* Retro Card Style (Wes Anderson Vibe) */
         .content-box {
             pointer-events: auto;
-            cursor: default; /* Reset cursor over UI */
-            background: rgba(253, 251, 247, 0.95);
-            backdrop-filter: blur(10px);
+            cursor: default;
+            /* Switched from transparent/blur to solid color to completely fix mobile scroll flickering */
+            background: #fdfbf7; 
             border: 2px solid #1e293b;
             border-radius: 0.5rem;
             transition: all 0.3s ease;
@@ -319,6 +320,7 @@
     <div id="scroll-wrapper">
         
         <!-- Section 1: Intro -->
+        <!-- Center card exactly vertically using items-center regardless of screen size -->
         <section class="panel justify-center items-center text-center" id="panel-0">
             <div class="content-box w-full max-w-[19rem] md:max-w-[22rem] p-5 md:p-8">
                 <p class="text-orange-600 font-bold tracking-widest uppercase text-[10px] md:text-xs mb-2 md:mb-3">Portfolio</p>
@@ -627,8 +629,8 @@
 
         let isMobile = window.innerWidth < 768;
 
-        // Apply global scale down for mobile devices to prevent the camera from being too massive
-        outerCameraGroup.scale.setScalar(isMobile ? 0.6 : 1);
+        // Bumping the mobile scale up so it isn't too small, but it avoids being huge like before
+        outerCameraGroup.scale.setScalar(isMobile ? 0.85 : 1);
 
         // Dynamic FOV for initial load
         camera.fov = isMobile ? 65 : 45;
@@ -723,10 +725,9 @@
             cameraGroup.rotation.y = currentRotation.y + (Math.sin(time * 0.5) * 0.08); // Add back the idle wobble
             // ---------------------------------------
 
-            // Update camera from GSAP state
-            // If on mobile, we virtually shift the camera down so the 3D model appears higher, 
-            // ensuring it isn't blocked by the bottom-aligned cards.
-            const mobileYOffset = isMobile ? 0.6 : 0; // Reduced offset since the model is now appropriately scaled
+            // By subtracting 1.0 from y on mobile, the 3D model physically shifts UP by 1 unit
+            // This places it perfectly in the top half of the screen, floating right above the text cards.
+            const mobileYOffset = isMobile ? 1.0 : 0; 
 
             camera.position.set(camState.x, camState.y - mobileYOffset, camState.z);
             lookTarget.set(camState.lookX, camState.lookY - mobileYOffset, camState.lookZ);
@@ -736,17 +737,26 @@
         }
         animate();
 
+        const panels = gsap.utils.toArray('.panel');
+
         // --- 4. SMOOTH GSAP SCROLL ANIMATIONS ---
         const tl = gsap.timeline({
             scrollTrigger: {
                 trigger: "#scroll-wrapper",
                 start: "top top",
                 end: "bottom bottom",
-                scrub: 1.5 // Reverted to 1.5 for buttery smoothness
+                scrub: 1, 
+                // NEW: Magnetic Scroll Snapping! Guarantees you stop naturally at each card and prevents overshooting
+                snap: {
+                    snapTo: 1 / (panels.length - 1), 
+                    duration: { min: 0.2, max: 0.6 },
+                    delay: 0.05, 
+                    ease: "power1.inOut"
+                }
             }
         });
 
-        const easeType = "power2.inOut"; // Reverted to smoother easing
+        const easeType = "power2.inOut"; 
 
         // Panel 1: Intro -> Panel 2: Shutter Zoom (Top right of camera)
         tl.to(camState, {
@@ -857,12 +867,9 @@
 
 
         // Animate UI elements opacity mapping to scroll panels
-        const panels = gsap.utils.toArray('.panel');
         panels.forEach((panel, i) => {
             const content = panel.querySelector('.content-box');
             
-            // Set initial states: First panel is visible, others are hidden.
-            // Using autoAlpha instead of opacity ensures invisible cards don't block mouse interactions.
             if (i === 0) {
                 gsap.set(content, { autoAlpha: 1, y: 0 });
             } else {
@@ -907,7 +914,7 @@
             lastWidth = window.innerWidth;
 
             isMobile = window.innerWidth < 768;
-            outerCameraGroup.scale.setScalar(isMobile ? 0.6 : 1);
+            outerCameraGroup.scale.setScalar(isMobile ? 0.85 : 1);
             camera.aspect = window.innerWidth / window.innerHeight;
             // Adjust FOV based on screen width to prevent clipping
             camera.fov = isMobile ? 65 : 45;
