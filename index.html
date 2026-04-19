@@ -638,8 +638,8 @@
 
         let isMobile = window.innerWidth < 768;
 
-        // Bumping the mobile scale DOWN to 0.55 so it sits consistently and neatly behind the center card
-        outerCameraGroup.scale.setScalar(isMobile ? 0.55 : 1);
+        // Bumping the mobile scale to 0.75 so it's clearly visible and not too small
+        outerCameraGroup.scale.setScalar(isMobile ? 0.75 : 1);
 
         // Dynamic FOV for initial load
         camera.fov = isMobile ? 65 : 45;
@@ -654,7 +654,7 @@
         // Helper to fade out foreground UI so user can see camera clearly while dragging
         function toggleUIFade(fade) {
             gsap.to(['#scroll-wrapper', '#interaction-hints'], { 
-                opacity: fade ? 0.15 : 1, 
+                opacity: fade ? 0 : 1, // Fades completely to 0
                 duration: 0.3, 
                 overwrite: "auto" 
             });
@@ -662,7 +662,7 @@
 
         // Handle Mouse
         window.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.content-box') || e.target.closest('#modal-overlay') || e.target.closest('#prank-joystick') || e.target.closest('#bg-theme-picker')) return;
+            if (e.target.closest('.content-box') || e.target.closest('#modal-overlay') || e.target.closest('#prank-joystick') || e.target.closest('#bg-theme-picker') || e.target.closest('#color-picker')) return;
             isDragging = true;
             document.body.style.cursor = 'grabbing';
             previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -704,14 +704,19 @@
 
         // Handle Touch (Mobile)
         window.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.content-box') || e.target.closest('#modal-overlay') || e.target.closest('#prank-joystick') || e.target.closest('#bg-theme-picker')) return;
+            if (e.target.closest('.content-box') || e.target.closest('#modal-overlay') || e.target.closest('#prank-joystick') || e.target.closest('#bg-theme-picker') || e.target.closest('#color-picker')) return;
             isDragging = true;
             previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             toggleUIFade(true);
-        }, { passive: true });
+        }, { passive: false }); // Set to false so we can prevent scrolling
 
         window.addEventListener('touchmove', (e) => {
             if (isDragging) {
+                // STOPS SCROLLING WHILE SPINNING CAMERA
+                if (e.cancelable) {
+                    e.preventDefault(); 
+                }
+
                 const deltaMove = {
                     x: e.touches[0].clientX - previousMousePosition.x,
                     y: e.touches[0].clientY - previousMousePosition.y
@@ -723,7 +728,7 @@
                 
                 previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             }
-        }, { passive: true });
+        }, { passive: false }); // Set to false so we can prevent scrolling
 
         window.addEventListener('touchend', () => { 
             if (isDragging) {
@@ -768,9 +773,8 @@
             cameraGroup.rotation.y = currentRotation.y + (Math.sin(time * 0.5) * 0.08); // Add back the idle wobble
             // ---------------------------------------
 
-            // Since cards are now strictly centered in the screen on all devices,
-            // we no longer need an artificial Y offset for the camera.
-            const mobileYOffset = 0; 
+            // Shift camera slightly up on mobile so it doesn't get completely hidden behind the center cards
+            const mobileYOffset = isMobile ? 0.6 : 0; 
 
             camera.position.set(camState.x, camState.y - mobileYOffset, camState.z);
             lookTarget.set(camState.lookX, camState.lookY - mobileYOffset, camState.lookZ);
@@ -939,7 +943,7 @@
             lastWidth = window.innerWidth;
 
             isMobile = window.innerWidth < 768;
-            outerCameraGroup.scale.setScalar(isMobile ? 0.55 : 1);
+            outerCameraGroup.scale.setScalar(isMobile ? 0.75 : 1);
             camera.aspect = window.innerWidth / window.innerHeight;
             // Adjust FOV based on screen width to prevent clipping
             camera.fov = isMobile ? 65 : 45;
