@@ -32,7 +32,6 @@
 
         html {
             scroll-snap-type: y mandatory;
-            scroll-behavior: smooth;
             overscroll-behavior-y: none;
         }
         
@@ -159,7 +158,7 @@
         /* 3D Canvas Background */
         #canvas-container { 
             position: fixed; top: 0; left: 0; width: 100vw; 
-            height: 100vh; /* Removed 100dvh to prevent jarring address bar resize jumps */
+            height: 100vh; height: 100svh; /* svh absolutely locks height to prevent address bar jitter */
             z-index: -1; pointer-events: none; 
         }
         
@@ -169,13 +168,12 @@
         }
         
         .panel { 
-            height: 100vh; height: 100dvh; /* Forces exact viewport height */
+            height: 100vh; height: 100svh; /* Locks the height for perfectly seamless scroll snapping */
             width: 100%; 
             display: flex; 
             position: relative; padding: 0 5%;
             pointer-events: none;
-            /* Changed from center to start! This permanently fixes the bottom-snapping bug on the first scroll */
-            scroll-snap-align: start; 
+            scroll-snap-align: center; /* Center handles Safari chrome changes perfectly */
             scroll-snap-stop: always; 
         }
 
@@ -966,7 +964,7 @@
             if (i === 0) {
                 gsap.set(content, { autoAlpha: 1, y: 0 });
             } else {
-                gsap.set(content, { autoAlpha: 0, y: 40 });
+                gsap.set(content, { autoAlpha: 0, y: 20 }); // Tighter vertical slide distance
             }
 
             // Swapped from `scrub: true` to `toggleActions`. 
@@ -976,11 +974,11 @@
                 trigger: panel,
                 start: "top 60%", 
                 end: "bottom 40%", 
-                onEnter: () => gsap.to(content, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out", overwrite: "auto" }),
-                onLeave: () => gsap.to(content, { autoAlpha: 0, y: -40, duration: 0.4, ease: "power2.in", overwrite: "auto" }),
-                onEnterBack: () => gsap.to(content, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out", overwrite: "auto" }),
+                onEnter: () => gsap.to(content, { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out", overwrite: "auto" }),
+                onLeave: () => gsap.to(content, { autoAlpha: 0, y: -20, duration: 0.3, ease: "power2.in", overwrite: "auto" }),
+                onEnterBack: () => gsap.to(content, { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out", overwrite: "auto" }),
                 onLeaveBack: () => {
-                    if (i !== 0) gsap.to(content, { autoAlpha: 0, y: 40, duration: 0.4, ease: "power2.in", overwrite: "auto" });
+                    if (i !== 0) gsap.to(content, { autoAlpha: 0, y: 20, duration: 0.3, ease: "power2.in", overwrite: "auto" });
                 }
             });
         });
