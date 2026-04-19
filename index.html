@@ -46,9 +46,11 @@
         .liquid-blob {
             position: absolute;
             border-radius: 50%;
-            filter: blur(80px); /* Harsh enough to see shapes, soft enough to blend */
+            filter: blur(50px); /* Reduced from 80px for massive performance gain */
             opacity: 0.85;
             pointer-events: none;
+            will-change: transform; /* Hardware accelerate */
+            transform: translateZ(0);
         }
 
         /* Stretched wide to create wave-like bands of warm color */
@@ -100,7 +102,11 @@
             position: fixed; inset: 0; z-index: -2; pointer-events: none;
             background-image: 
                 radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.4) 100%),
-                url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="3.0" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.15"/%3E%3C/svg%3E');
+                /* Swapped heavy SVG feTurbulence for a hyper-lightweight pre-rendered PNG noise to fix sluggishness */
+                url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAGFBMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMcvsZAAAACHRSTlMAvz+/v7+/v78A4z/9QwAAABxJREFUOMtjYMAOGFIgDGAqwYABRzQMDH6oYC4c0TAMjH5UwHw4ouFhYAADj0c1jIfhYcAAAQYA2nER6i0i5pQAAAAASUVORK5CYII=');
+            background-repeat: repeat;
+            opacity: 0.6;
+            mix-blend-mode: overlay;
         }
 
         /* --- NEW: Twinkling Stars --- */
@@ -168,8 +174,9 @@
             display: flex; 
             position: relative; padding: 0 5%;
             pointer-events: none;
-            scroll-snap-align: center; /* Magnetic snap beautifully centers the card */
-            scroll-snap-stop: always; /* Prevent skipping cards on hard scroll */
+            /* Changed from center to start! This permanently fixes the bottom-snapping bug on the first scroll */
+            scroll-snap-align: start; 
+            scroll-snap-stop: always; 
         }
 
         /* Retro Card Style (Wes Anderson Vibe) */
@@ -817,84 +824,98 @@
         const panels = gsap.utils.toArray('.panel');
 
         // --- 4. SMOOTH GSAP SCROLL ANIMATIONS ---
-        const tl = gsap.timeline({
-            scrollTrigger: {
-                trigger: "#scroll-wrapper",
-                start: "top top",
-                end: "bottom bottom",
-                scrub: 1 
-                // Removed GSAP snap. We now rely on rock-solid native CSS Scroll Snapping
-                // which enforces low sensitivity and natural, absolute stops at each section!
-            }
-        });
+        let tl;
+        let hintsAnim;
 
-        const easeType = "power2.inOut"; 
+        // Wrapped in a function so we can assign different zoom targets for Mobile vs Desktop
+        function initTimeline() {
+            if(tl) tl.kill();
+            if(hintsAnim) hintsAnim.kill();
 
-        // Panel 1: Intro -> Panel 2: Shutter Zoom (Top right of camera)
-        tl.to(camState, {
-            x: 2.5, y: 3.5, z: 2, 
-            lookX: 1.5, lookY: 1.3, lookZ: 0.2,
-            ease: easeType
-        }, 0);
+            tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: "#scroll-wrapper",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scrub: 1 
+                }
+            });
 
-        // Panel 2 -> Panel 3: Viewfinder Zoom (Back/top of camera)
-        tl.to(camState, {
-            x: -2, y: 3, z: -4.5,
-            lookX: -0.5, lookY: 1.4, lookZ: -0.9,
-            ease: easeType
-        }, 1);
+            const easeType = "power2.inOut"; 
 
-        // Panel 3 -> Panel 4: Side View of Lens (Production)
-        tl.to(camState, {
-            x: -5, y: 0, z: 1.6, // Move far to the left side
-            lookX: -0.5, lookY: 0, lookZ: 1.6, // Look at the side of the lens
-            ease: easeType
-        }, 2);
+            // Panel 1: Intro -> Panel 2: Shutter Zoom (Top right of camera)
+            tl.to(camState, {
+                x: 2.5, y: 3.5, z: 2, 
+                lookX: 1.5, lookY: 1.3, lookZ: 0.2,
+                ease: easeType
+            }, 0);
 
-        // Panel 4 -> Panel 5: AI Mode / Dial focus
-        tl.to(camState, {
-            x: 0.5, y: 3.5, z: 2.5, // Hover above the dial
-            lookX: 0.5, lookY: 1.35, lookZ: 0, // Look at dial
-            ease: easeType
-        }, 3);
+            // Panel 2 -> Panel 3: Viewfinder Zoom (Work Experience)
+            tl.to(camState, {
+                // Pulled much closer/bigger on mobile!
+                x: isMobile ? -1.5 : -2, 
+                y: isMobile ? 2.5 : 3, 
+                z: isMobile ? -3.0 : -4.5, 
+                lookX: -0.5, lookY: 1.4, lookZ: -0.9,
+                ease: easeType
+            }, 1);
 
-        // Simultaneously flick the dial as we arrive at Panel 5
-        tl.to(dialGroup.rotation, {
-            y: Math.PI * 1.25, // Rotate the dial visibly
-            ease: "back.out(1.5)" // Snappy mechanical click
-        }, 3.2);
+            // Panel 3 -> Panel 4: Side View of Lens (Production)
+            tl.to(camState, {
+                x: -5, y: 0, z: 1.6, 
+                lookX: -0.5, lookY: 0, lookZ: 1.6,
+                ease: easeType
+            }, 2);
 
-        // Panel 5 -> Panel 6: Center card, make camera disappear (scale to 0)
-        tl.to(camState, {
-            x: 0, y: 0, z: 12,      
-            lookX: 0, lookY: 0, lookZ: 0,
-            ease: easeType
-        }, 4);
+            // Panel 4 -> Panel 5: AI Mode / Dial focus (AI Generation)
+            tl.to(camState, {
+                x: 0.5, 
+                // Pulled further away on mobile so it isn't too massive!
+                y: isMobile ? 5.0 : 3.5, 
+                z: isMobile ? 4.0 : 2.5, 
+                lookX: 0.5, lookY: 1.35, lookZ: 0, 
+                ease: easeType
+            }, 3);
 
-        // Scale camera down to 0 so it smoothly vanishes into the center, 
-        // explicitly setting start scale so it scrubs backward reliably.
-        tl.fromTo(cameraGroup.scale, 
-            { x: 1, y: 1, z: 1 },
-            { x: 0, y: 0, z: 0, ease: "power2.inOut" }, 
-            4
-        );
+            // Simultaneously flick the dial as we arrive at Panel 5
+            tl.to(dialGroup.rotation, {
+                y: Math.PI * 1.25, 
+                ease: "back.out(1.5)" 
+            }, 3.2);
 
-        // Reset the dial
-        tl.to(dialGroup.rotation, {
-            y: 0,
-            ease: "back.out(1.5)"
-        }, 4);
+            // Panel 5 -> Panel 6: Center card, make camera disappear (scale to 0)
+            tl.to(camState, {
+                x: 0, y: 0, z: 12,      
+                lookX: 0, lookY: 0, lookZ: 0,
+                ease: easeType
+            }, 4);
 
-        // Fade out interaction hints as user starts scrolling
-        gsap.to('#interaction-hints', {
-            autoAlpha: 0,
-            scrollTrigger: {
-                trigger: "#scroll-wrapper",
-                start: "top top",
-                end: "+=150", // Fades out very quickly within the first 150px of scroll
-                scrub: true
-            }
-        });
+            tl.fromTo(cameraGroup.scale, 
+                { x: 1, y: 1, z: 1 },
+                { x: 0, y: 0, z: 0, ease: "power2.inOut" }, 
+                4
+            );
+
+            // Reset the dial
+            tl.to(dialGroup.rotation, {
+                y: 0,
+                ease: "back.out(1.5)"
+            }, 4);
+
+            // Fade out interaction hints as user starts scrolling
+            hintsAnim = gsap.to('#interaction-hints', {
+                autoAlpha: 0,
+                scrollTrigger: {
+                    trigger: "#scroll-wrapper",
+                    start: "top top",
+                    end: "+=150", 
+                    scrub: true
+                }
+            });
+        }
+        
+        // Initialize timeline immediately
+        initTimeline();
 
         // --- NEW: Background Theme Picker Dimming Logic ---
         const bgPicker = document.getElementById('bg-theme-picker');
@@ -965,11 +986,13 @@
         });
 
         // Handle Resize with Mobile Address Bar Protection
+        let wasMobile = window.innerWidth < 768;
         let lastWidth = window.innerWidth;
+        
         window.addEventListener('resize', () => {
             // Mobile browsers hide/show the address bar on scroll, triggering a height-only resize.
             // We ignore height-only resizes on mobile to prevent the 3D canvas from jarringly snapping.
-            if (isMobile && window.innerWidth === lastWidth) return;
+            if (wasMobile && window.innerWidth === lastWidth) return;
             lastWidth = window.innerWidth;
 
             isMobile = window.innerWidth < 768;
@@ -979,6 +1002,12 @@
             camera.fov = isMobile ? 65 : 45;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Only rebuild the GSAP animation timeline if we crossed the mobile/desktop boundary
+            if (isMobile !== wasMobile) {
+                wasMobile = isMobile;
+                initTimeline();
+            }
             
             ScrollTrigger.refresh(); // Refresh scroll triggers strictly when width actually changes
         });
