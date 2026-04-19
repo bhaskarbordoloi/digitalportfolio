@@ -168,7 +168,7 @@
             display: flex; 
             position: relative; padding: 0 5%;
             pointer-events: none;
-            scroll-snap-align: start; /* Magnetic snap to each card */
+            scroll-snap-align: center; /* Magnetic snap beautifully centers the card */
             scroll-snap-stop: always; /* Prevent skipping cards on hard scroll */
         }
 
@@ -647,6 +647,10 @@
 
         // --- NEW: INTERACTIVE DRAG LOGIC ---
         let isDragging = false;
+        let isSpinningCamera = false;
+        let isScrollAttempt = false;
+        let touchStartX = 0;
+        let touchStartY = 0;
         let previousMousePosition = { x: 0, y: 0 };
         let targetRotation = { x: 0, y: 0 };
         let currentRotation = { x: 0, y: 0 };
@@ -660,7 +664,7 @@
             });
         }
 
-        // Handle Mouse
+        // Handle Mouse (Desktop)
         window.addEventListener('mousedown', (e) => {
             if (e.target.closest('.content-box') || e.target.closest('#modal-overlay') || e.target.closest('#prank-joystick') || e.target.closest('#bg-theme-picker') || e.target.closest('#color-picker')) return;
             isDragging = true;
@@ -705,43 +709,69 @@
         // Handle Touch (Mobile)
         window.addEventListener('touchstart', (e) => {
             if (e.target.closest('.content-box') || e.target.closest('#modal-overlay') || e.target.closest('#prank-joystick') || e.target.closest('#bg-theme-picker') || e.target.closest('#color-picker')) return;
+            
             isDragging = true;
-            previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            toggleUIFade(true);
-        }, { passive: false }); // Set to false so we can prevent scrolling
+            isSpinningCamera = false;
+            isScrollAttempt = false;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            previousMousePosition = { x: touchStartX, y: touchStartY };
+            
+            // DO NOT fade UI yet! Wait to see if user is scrolling or spinning
+        }, { passive: false }); 
 
         window.addEventListener('touchmove', (e) => {
             if (isDragging) {
-                // STOPS SCROLLING WHILE SPINNING CAMERA
-                if (e.cancelable) {
-                    e.preventDefault(); 
+                const currentX = e.touches[0].clientX;
+                const currentY = e.touches[0].clientY;
+                const deltaX = currentX - touchStartX;
+                const deltaY = currentY - touchStartY;
+
+                // Determine user's intent on the first 8 pixels of movement
+                if (!isSpinningCamera && !isScrollAttempt) {
+                    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 8) {
+                        // User is swiping UP/DOWN -> Let them scroll naturally
+                        isScrollAttempt = true;
+                        isDragging = false; 
+                        return; 
+                    } else if (Math.abs(deltaX) > 8) {
+                        // User is swiping LEFT/RIGHT -> Lock scroll and spin camera
+                        isSpinningCamera = true;
+                        toggleUIFade(true); 
+                    }
                 }
 
-                const deltaMove = {
-                    x: e.touches[0].clientX - previousMousePosition.x,
-                    y: e.touches[0].clientY - previousMousePosition.y
-                };
-                
-                targetRotation.y += deltaMove.x * 0.008;
-                targetRotation.x += deltaMove.y * 0.008;
-                targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, targetRotation.x));
-                
-                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                // If we established they want to spin the camera
+                if (isSpinningCamera) {
+                    // STOP SCROLLING
+                    if (e.cancelable) {
+                        e.preventDefault(); 
+                    }
+
+                    const moveX = currentX - previousMousePosition.x;
+                    const moveY = currentY - previousMousePosition.y;
+                    
+                    targetRotation.y += moveX * 0.008;
+                    targetRotation.x += moveY * 0.008;
+                    targetRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, targetRotation.x));
+                    
+                    previousMousePosition = { x: currentX, y: currentY };
+                }
             }
-        }, { passive: false }); // Set to false so we can prevent scrolling
+        }, { passive: false }); 
 
         window.addEventListener('touchend', () => { 
-            if (isDragging) {
-                isDragging = false; 
-                toggleUIFade(false);
-            }
+            isDragging = false;
+            isSpinningCamera = false;
+            isScrollAttempt = false;
+            toggleUIFade(false);
         });
         
         window.addEventListener('touchcancel', () => { 
-            if (isDragging) {
-                isDragging = false; 
-                toggleUIFade(false);
-            }
+            isDragging = false;
+            isSpinningCamera = false;
+            isScrollAttempt = false;
+            toggleUIFade(false);
         });
 
         // Prevent accidental text selection while dragging the camera
